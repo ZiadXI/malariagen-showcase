@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MalariaGEN Interface</title>
+<style>
+    /* Base Resets */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+        background-color: #f4f5f7;
+        color: #1a1a1a;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Header Styling */
+    header {
+        background-color: #ffffff;
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    .brand img {
+        height: 40px;
+    }
+
+    .brand .blue { color: #000080; }
+    .brand .orange { color: #f6ad55; }
+
+    .menu-icon {
+        font-size: 24px;
+        color: #4a5568;
+        cursor: pointer;
+    }
+
+    /* Main Layout */
+    .layout {
+        display: flex;
+        flex: 1;
+        height: calc(100vh - 65px);
+    }
+
+    /* Left Panel (NLI) */
+    .left-panel {
+        width: 45%;
+        padding: 30px;
+        background-color: #f0f2f5;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .left-panel h1 {
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .input-label {
+        font-size: 13px;
+        color: #4a5568;
+        font-weight: 500;
+    }
+
+    .query-box {
+        width: 100%;
+        height: 120px;
+        padding: 15px;
+        border: 1px solid #63b3ed;
+        border-radius: 6px;
+        resize: none;
+        font-size: 14px;
+        line-height: 1.5;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.2);
+    }
+
+    .btn-run {
+        align-self: flex-start;
+        background-color: #0ea5e9;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .btn-run:hover {
+        background-color: #0284c7;
+    }
+
+    /* Right Panel (Results) */
+    .right-panel {
+        width: 55%;
+        padding: 30px 40px;
+        background-color: #ffffff;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .right-panel h2 {
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #2d3748;
+    }
+
+    /* Code Block Styling */
+    .code-block {
+        background-color: #171923;
+        color: #e2e8f0;
+        padding: 16px;
+        border-radius: 8px;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        position: relative;
+        overflow-x: auto;
+    }
+
+    .code-block .keyword { color: #c678dd; }
+    .code-block .function { color: #61afef; }
+    .code-block .string { color: #98c379; }
+    .code-block .comment { color: #5c6370; font-style: italic; }
+
+    .copy-icon {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        color: #a0aec0;
+        cursor: pointer;
+    }
+
+    /* Chart Styling */
+    .chart-container {
+        text-align: center;
+        margin-top: 10px;
+    }
+    
+    .chart-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .chart-layout {
+        display: flex;
+        align-items: stretch;
+        height: 250px;
+        margin-right: 20px;
+        width: 70%; /* Gives the chart area enough room to breathe */
+    }
+
+    .y-axis {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding-right: 10px;
+        font-size: 12px;
+        color: #4a5568;
+        text-align: right;
+        width: 60px;
+        position: relative;
+        padding-bottom: 28px; /* Aligns the 0% with the bottom border of the chart */
+    }
+    
+    .y-axis-label {
+        position: absolute;
+        left: -80px;
+        top: 50%;
+        transform: translateY(-50%) rotate(-90deg);
+        font-size: 13px;
+        font-weight: 500;
+        color: #2d3748;
+        width: 200px;
+        text-align: center;
+    }
+
+    /* Updated Flexbox layout for the bars */
+    .bars-area {
+        flex: 1;
+        display: flex;
+        justify-content: space-evenly; /* Creates perfectly even gaps between columns */
+        align-items: stretch; 
+        border-bottom: 1px solid #cbd5e0;
+        border-left: 1px solid #cbd5e0;
+        padding: 0 10px;
+        position: relative;
+    }
+
+    .bar-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 80px; /* Forces a maximum width so they don't stretch into each other */
+    }
+
+    .bar-group {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        flex: 1; /* Pushes the label to the bottom and takes the remaining vertical space */
+    }
+
+    .bar-segment {
+        width: 100%;
+    }
+
+    .bar-label {
+        text-align: center;
+        font-size: 12px;
+        margin-top: 8px;
+        color: #2d3748;
+        font-style: italic;
+        height: 20px;
+        white-space: nowrap; /* Prevents awkward text wrapping */
+    }
+
+    .x-axis-title {
+        text-align: center;
+        font-size: 13px;
+        font-weight: 500;
+        margin-top: 25px;
+    }
+
+    /* Chart Colors */
+    .color-blue { background-color: #3182ce; }
+    .color-red { background-color: #e53e3e; }
+    .color-orange { background-color: #dd6b20; }
+    .color-green { background-color: #48bb78; }
+
+    /* Legend */
+    .legend-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin-left: 20px;
+        font-size: 12px;
+        gap: 8px;
+    }
+
+    .legend-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .legend-box {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Summary Section */
+    .summary-box {
+        background-color: #f1f5f9;
+        padding: 16px;
+        border-radius: 6px;
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: #1a202c;
+    }
+
+    .footer-status {
+        font-size: 12px;
+        color: #718096;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <img src="https://unavatar.io/twitter/malariagenomics" alt="MalariaGEN Logo">
+        <span><span class="blue">Malaria</span><span class="orange">GEN</span></span>
+    </div>
+    <div class="menu-icon">☰</div>
+</header>
+
+<div class="layout">
+    <aside class="left-panel">
+        <h1>Natural-Language Interface (NLI)</h1>
+        <div class="input-label">Ask MalariaGEN Data</div>
+        <textarea class="query-box">Show me the distribution of kdr mutations (Vgsc-995F) across different mosquito species in Burkina Faso collected after 2018.</textarea>
+        <button class="btn-run">Run Query</button>
+    </aside>
+
+    <main class="right-panel">
+        <h2>Query Results</h2>
+
+        <div class="section">
+            <div class="section-title">Generated Python Code (Executing)</div>
+            <div class="code-block">
+                <span class="copy-icon">📋</span>
+                <span class="keyword">import</span> malariagen_data<br>
+                ag3 = malariagen_data.<span class="function">Ag3</span>(<span class="string">"gs://vo_agam_release/"</span>)<br><br>
+                <span class="comment"># Define sample query</span><br>
+                df_samples = ag3.<span class="function">sample_metadata</span>(sample_sets=<span class="string">'3.0'</span>, where=<span class="string">'country == "Burkina Faso" and year > 2018'</span>)<br>
+                sample_ids = df_samples[<span class="string">'sample_id'</span>].values<br><br>
+                <span class="comment"># Call SNP data for Vgsc-995F</span><br>
+                snps = ag3.<span class="function">snp_calls</span>(region=<span class="string">'2L:2,422,652'</span>, samples=sample_ids)<br>
+                <span class="comment"># (...further processing code...)</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Data Visualization</div>
+            <div class="chart-container">
+                <div class="chart-title">kdr (Vgsc-995F) Genotype Distribution by Species in Burkina Faso (Post-2018)</div>
+                
+                <div style="display: flex;">
+                    <div class="chart-layout">
+                        <div class="y-axis">
+                            <div class="y-axis-label">Mutation Frequency (Vgsc-995F)</div>
+                            <span>100%</span>
+                            <span>80%</span>
+                            <span>60%</span>
+                            <span>40%</span>
+                            <span>20%</span>
+                            <span>0%</span>
+                        </div>
+                        
+                        <div class="bars-area">
+                            <div class="bar-wrapper">
+                                <div class="bar-group">
+                                    <div class="bar-segment color-green" style="height: 12%;"></div>
+                                    <div class="bar-segment color-orange" style="height: 1%;"></div>
+                                    <div class="bar-segment color-red" style="height: 80%;"></div>
+                                    <div class="bar-segment color-blue" style="height: 7%;"></div>
+                                </div>
+                                <div class="bar-label">An. gambiae</div>
+                            </div>
+                            
+                            <div class="bar-wrapper">
+                                <div class="bar-group">
+                                    <div class="bar-segment color-green" style="height: 8%;"></div>
+                                    <div class="bar-segment color-orange" style="height: 12%;"></div>
+                                    <div class="bar-segment color-red" style="height: 65%;"></div>
+                                    <div class="bar-segment color-blue" style="height: 15%;"></div>
+                                </div>
+                                <div class="bar-label">An. coluzzii</div>
+                            </div>
+
+                            <div class="bar-wrapper">
+                                <div class="bar-group">
+                                    <div class="bar-segment color-green" style="height: 25%;"></div>
+                                    <div class="bar-segment color-orange" style="height: 12%;"></div>
+                                    <div class="bar-segment color-red" style="height: 40%;"></div>
+                                    <div class="bar-segment color-blue" style="height: 23%;"></div>
+                                </div>
+                                <div class="bar-label">An. arabiensis</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="legend-container">
+                        <div class="legend-title">Genotype</div>
+                        <div class="legend-item">
+                            <div class="legend-box color-green"></div>
+                            <span>Wild-type</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-box color-orange"></div>
+                            <span>Heterozygous</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-box color-red"></div>
+                            <span>Homozygous Mutant</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-box color-blue"></div>
+                            <span>Other / Unclassified</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="x-axis-title">Mosquito Species</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Natural Language Summary</div>
+            <div class="summary-box">
+                Analysis complete. The Vgsc-995F <em>*kdr*</em> mutation is highly prevalent (over 85% homozygous mutant) in <em>*An. gambiae*</em> and <em>*An. coluzzii*</em> populations in Burkina Faso collected after 2018. The mutation frequency remains significantly lower in <em>*An. arabiensis*</em> samples from the same region and period.
+            </div>
+            <div class="footer-status">
+                ⟳ Executing generated code and rendering results...
+            </div>
+        </div>
+    </main>
+</div>
+
+</body>
+</html>
