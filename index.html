@@ -5,18 +5,105 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MalariaGEN NLI — Natural Language Interface</title>
-
     <style>
-        /* === YOUR ORIGINAL CSS (UNCHANGED) === */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: #f0f2f5;
             color: #1a1a1a;
+            margin: 0;
+            overflow: hidden; /* Prevent body scrolling when modal is active */
+        }
+
+        /* --- Modal & Overlay Styles --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
             height: 100vh;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-box {
+            background: #ffffff;
+            padding: 36px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            max-width: 480px;
+            text-align: center;
+            animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            0% { transform: scale(0.95) translateY(10px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .modal-box h2 {
+            font-size: 22px;
+            color: #1a202c;
+            margin-bottom: 16px;
+        }
+
+        .modal-box p {
+            font-size: 14.5px;
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .modal-box a {
+            color: #0ea5e9;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .modal-box a:hover {
+            text-decoration: underline;
+        }
+
+        .btn-accept {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            padding: 12px 0;
+            width: 100%;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+        }
+
+        .btn-accept:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+        }
+
+        /* --- App Container (handles blurring) --- */
+        #app-content {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            height: 100vh;
+            transition: filter 0.4s ease;
+        }
+
+        #app-content.blurred {
+            filter: blur(8px);
+            pointer-events: none; /* Prevents clicking anything behind the modal */
+            user-select: none;
         }
 
         header {
@@ -30,165 +117,820 @@
             z-index: 10;
         }
 
-        .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700; }
-        .brand img { height: 36px; border-radius: 4px; }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .brand img {
+            height: 36px;
+            border-radius: 4px;
+        }
+
         .brand .blue { color: #000080; }
         .brand .orange { color: #f6ad55; }
 
-        .layout { display: flex; flex: 1; overflow: hidden; }
-
-        .left-panel {
-            width: 42%;
-            padding: 28px;
-            background: linear-gradient(160deg, #f8fafc 0%, #eef2f7 100%);
+        .header-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
         }
 
-        .right-panel {
+        .layout {
+            display: flex;
             flex: 1;
-            padding: 28px;
-            background: #fff;
+            overflow: hidden;
+        }
+
+        /* Footer Styles */
+        .app-footer {
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 12px 28px;
+            font-size: 12px;
+            color: #718096;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .app-footer a {
+            color: #0ea5e9;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .app-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Rest of original styles */
+        .left-panel {
+            width: 42%;
+            min-width: 340px;
+            padding: 28px 28px 20px;
+            background: linear-gradient(160deg, #f8fafc 0%, #eef2f7 100%);
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
             overflow-y: auto;
+        }
+
+        .left-panel h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .left-panel .subtitle {
+            font-size: 13px;
+            color: #718096;
+            margin-top: -8px;
+        }
+
+        .input-label {
+            font-size: 12px;
+            color: #4a5568;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
         }
 
         .query-box {
             width: 100%;
-            height: 100px;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
+            height: 110px;
+            padding: 14px;
+            border: 1.5px solid #bee3f8;
+            border-radius: 10px;
+            resize: none;
+            font-size: 14px;
+            line-height: 1.6;
+            outline: none;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.15);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            color: #2d3748;
+        }
+
+        .query-box:focus {
+            border-color: #63b3ed;
+            box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.3);
         }
 
         .btn-run {
-            margin-top: 10px;
-            padding: 10px 20px;
-            background: #0284c7;
+            align-self: flex-start;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            padding: 11px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
-        }
-
-        /* === NEW: TERMS MODAL === */
-
-        body.blurred > *:not(#touModal) {
-            filter: blur(6px);
-            pointer-events: none;
-            user-select: none;
-        }
-
-        .tou-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.55);
-            display: none; /* start hidden */
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+            display: flex;
             align-items: center;
-            justify-content: center;
-            z-index: 9999;
+            gap: 8px;
         }
 
-        .tou-box {
-            background: white;
-            padding: 28px;
-            border-radius: 12px;
-            max-width: 460px;
-            text-align: center;
+        .btn-run:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.45);
         }
 
-        .tou-box h2 { margin-bottom: 12px; }
-        .tou-box p { margin-bottom: 16px; color: #555; }
-
-        .tou-link {
-            display: inline-block;
-            margin-bottom: 18px;
-            color: #0284c7;
-            font-weight: bold;
-            text-decoration: none;
+        .btn-run:active {
+            transform: translateY(0);
         }
 
-        .tou-accept {
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        footer {
-            padding: 14px;
+        .examples-label {
             font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .example-chips {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chip {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #2d3748;
+            text-align: left;
+            line-height: 1.4;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .chip:hover {
+            border-color: #0ea5e9;
+            background: #ebf8ff;
+            color: #0284c7;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+        }
+
+        .chip.active {
+            border-color: #0ea5e9;
+            background: #ebf8ff;
+            color: #0284c7;
+        }
+
+        .chip-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .chip.warning-chip:hover {
+            border-color: #f6ad55;
+            background: #fffbeb;
+            color: #c05621;
+        }
+
+        .chip.warning-chip.active {
+            border-color: #f6ad55;
+            background: #fffbeb;
+            color: #c05621;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 28px 36px;
+            background: #ffffff;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .right-panel h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-title::before {
+            content: '';
+            display: block;
+            width: 3px;
+            height: 14px;
+            background: #0ea5e9;
+            border-radius: 2px;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 18px;
+            border-radius: 10px;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            position: relative;
+            overflow-x: auto;
+            border: 1px solid #2d3748;
+        }
+
+        .code-block .keyword { color: #c678dd; }
+        .code-block .function { color: #61afef; }
+        .code-block .string { color: #98c379; }
+        .code-block .comment { color: #5c6370; font-style: italic; }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            color: #a0aec0;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .copy-btn:hover {
+            background: #4a5568;
+            color: #fff;
+        }
+
+        .chart-container { padding: 4px 0; }
+        .chart-title {
+            font-size: 13.5px;
+            font-weight: 600;
             text-align: center;
-            background: #f8fafc;
-            border-top: 1px solid #ddd;
+            margin-bottom: 18px;
+            color: #2d3748;
+        }
+
+        .chart-layout {
+            display: flex;
+            align-items: stretch;
+            height: 220px;
+            flex: 1;
+        }
+
+        .y-axis {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding-right: 8px;
+            font-size: 11.5px;
+            color: #718096;
+            text-align: right;
+            width: 46px;
+            padding-bottom: 24px;
+        }
+
+        .bars-area {
+            flex: 1;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: stretch;
+            border-bottom: 1.5px solid #cbd5e0;
+            border-left: 1.5px solid #cbd5e0;
+            padding: 0 16px;
+            background: repeating-linear-gradient(180deg, #f7fafc 0px, #f7fafc 1px, transparent 1px, transparent 44px);
+        }
+
+        .bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex: 1;
+            max-width: 90px;
+            min-width: 50px;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            border-radius: 4px 4px 0 0;
+            overflow: hidden;
+        }
+
+        .bar-segment { width: 100%; }
+
+        .bar-label {
+            text-align: center;
+            font-size: 11.5px;
+            margin-top: 8px;
+            color: #4a5568;
+            font-style: italic;
+            white-space: nowrap;
+        }
+
+        .x-axis-title {
+            text-align: center;
+            font-size: 12.5px;
+            font-weight: 600;
+            margin-top: 22px;
+            color: #2d3748;
+        }
+
+        .legend-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin-left: 22px;
+            font-size: 12px;
+            gap: 9px;
+        }
+
+        .legend-title {
+            font-weight: 700;
+            margin-bottom: 2px;
+            color: #2d3748;
+            font-size: 12.5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #4a5568;
+        }
+
+        .legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .color-blue { background-color: #4299e1; }
+        .color-red { background-color: #fc8181; }
+        .color-orange { background-color: #f6ad55; }
+        .color-green { background-color: #68d391; }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            background: #edf2f7;
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f4f8;
+            color: #2d3748;
+        }
+
+        .data-table tr:hover td { background: #f7fafc; }
+
+        .table-wrapper {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-footer {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 1.5px solid #f6ad55;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .warning-icon { font-size: 32px; flex-shrink: 0; }
+
+        .warning-content h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        .warning-content p {
+            font-size: 13.5px;
+            color: #78350f;
+            line-height: 1.6;
+        }
+
+        .warning-link {
+            display: inline-block;
+            margin-top: 12px;
+            background: #d97706;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .warning-link:hover { background: #b45309; }
+
+        .summary-box {
+            background: linear-gradient(135deg, #f0fff4, #f0f4ff);
+            border: 1px solid #c6f6d5;
+            padding: 16px 20px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            line-height: 1.7;
+            color: #1a202c;
+        }
+
+        .loader {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #edf2f7 0%, #e2e8f0 50%, #edf2f7 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .result-view {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .result-view.active {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 
 <body>
 
-    <header>
-        <div class="brand">
-            <img src="https://pbs.twimg.com/profile_images/1816070731928625152/OPUDyf5T.png">
-            <span><span class="blue">Malaria</span><span class="orange">GEN</span></span>
-        </div>
-    </header>
-
-    <div class="layout">
-        <div class="left-panel">
-            <textarea class="query-box">Show me kdr mutations</textarea>
-            <button class="btn-run">Run</button>
-        </div>
-
-        <div class="right-panel">
-            <h2>Query Results</h2>
-            <p>Your existing UI stays untouched here.</p>
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2>Terms of Use</h2>
+            <p>Welcome to the MalariaGEN Natural Language Interface. Use of this data is subject to the MalariaGEN Vector Observatory Terms of Use. By proceeding, you agree to our data sharing policies.</p>
+            <p><a href="https://www.malariagen.net/data/our-approach-sharing-data/" target="_blank">Read the full Terms of Use</a></p>
+            <button class="btn-accept" id="acceptBtn">I Accept</button>
         </div>
     </div>
 
-    <!-- FOOTER -->
-    <footer>
-        Data sourced from <strong>MalariaGEN Vector Observatory (Ag3.14)</strong>.
-        Use of this data is subject to official Terms of Use and data governance policies.
-        Proper citation is required for any publication or derived work.
-        <br>
-        <a href="https://www.malariagen.net/data/our-approach-sharing-data/" target="_blank">
-            → View Terms of Use
-        </a>
-    </footer>
+    <div id="app-content" class="blurred">
+        <header>
+            <div class="brand">
+                <img src="https://pbs.twimg.com/profile_images/1816070731928625152/OPUDyf5T.png" alt="MalariaGEN">
+                <span><span class="blue">Malaria</span><span class="orange">GEN</span></span>
+                <span style="color:#718096;font-size:14px;font-weight:400;letter-spacing:0;">|</span>
+                <span style="font-size:15px;font-weight:500;color:#4a5568;letter-spacing:-0.2px;">Natural Language Interface</span>
+                <span class="header-badge">DEMO</span>
+            </div>
+        </header>
 
-    <!-- TERMS MODAL -->
-    <div id="touModal" class="tou-modal">
-        <div class="tou-box">
-            <h2>Terms of Use & Data Access</h2>
-            <p>
-                This tool uses MalariaGEN data. You must agree to the Terms of Use
-                before accessing the system, including proper citation and responsible use.
-            </p>
+        <div class="layout">
+            <aside class="left-panel">
+                <div class="input-label">Your Query</div>
+                <textarea class="query-box" id="queryBox">Show me the distribution of kdr mutations (Vgsc-995F) across different mosquito species in Burkina Faso collected after 2018.</textarea>
 
-            <a href="https://www.malariagen.net/data/our-approach-sharing-data/" target="_blank" class="tou-link">
-                View Terms →
-            </a>
+                <button class="btn-run" id="runBtn" onclick="runQuery()">
+                    <div class="spinner" id="spinner"></div>
+                    <span id="btnText">▶ Run Query</span>
+                </button>
 
-            <button class="tou-accept" onclick="acceptTOU()">I Accept</button>
+                <div class="examples-label">Example Queries</div>
+                <div class="example-chips">
+                    <div class="chip active" id="chip0" onclick="selectChip(0)">
+                        <span class="chip-icon">🦟</span>
+                        <span>Show me the distribution of kdr mutations across mosquito species in Burkina Faso after 2018.</span>
+                    </div>
+                    <div class="chip" id="chip1" onclick="selectChip(1)">
+                        <span class="chip-icon">📊</span>
+                        <span>Now filter to Anopheles gambiae only and show as a table.</span>
+                    </div>
+                    <div class="chip warning-chip" id="chip2" onclick="selectChip(2)">
+                        <span class="chip-icon">🔒</span>
+                        <span>Show me restricted Anopheles arabiensis sample data.</span>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="right-panel" id="rightPanel">
+                <h2>Query Results</h2>
+
+                <div class="loader" id="loader">
+                    <div class="skeleton" style="height:16px;width:40%;"></div>
+                    <div class="skeleton" style="height:130px;"></div>
+                    <div class="skeleton" style="height:16px;width:30%;margin-top:4px;"></div>
+                    <div class="skeleton" style="height:80px;"></div>
+                </div>
+
+                <div class="result-view active" id="result0">
+                    <div class="section">
+                        <div class="section-title">Generated Python Code</div>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(0)">Copy</button>
+                            <span class="keyword">import</span> malariagen_data<br>
+                            ag3 = malariagen_data.<span class="function">Ag3</span>()<br><br>
+                            <span class="comment"># Get Burkina Faso samples post-2018</span><br>
+                            df_samples = ag3.<span class="function">sample_metadata</span>(<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;sample_sets=<span class="string">"3.0"</span>,<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;sample_query=<span class="string">"country == 'Burkina Faso' and year > 2018"</span><br>
+                            )<br><br>
+                            <span class="comment"># Fetch SNP calls for Vgsc-995F (2L:2,422,652)</span><br>
+                            snps = ag3.<span class="function">snp_calls</span>(<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;region=<span class="string">"2L:2,422,652"</span>,<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;samples=df_samples[<span class="string">"sample_id"</span>].values<br>
+                            )
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Data Visualization</div>
+                        <div class="chart-container">
+                            <div class="chart-title">kdr (Vgsc-995F) Genotype Distribution by Species — Burkina Faso (Post-2018)</div>
+                            <div style="display:flex;">
+                                <div class="chart-layout">
+                                    <div class="y-axis">
+                                        <span>100%</span><span>80%</span><span>60%</span><span>40%</span><span>20%</span><span>0%</span>
+                                    </div>
+                                    <div class="bars-area">
+                                        <div class="bar-wrapper">
+                                            <div class="bar-group">
+                                                <div class="bar-segment color-green" style="height:7%;"></div>
+                                                <div class="bar-segment color-orange" style="height:6%;"></div>
+                                                <div class="bar-segment color-red" style="height:80%;"></div>
+                                                <div class="bar-segment color-blue" style="height:7%;"></div>
+                                            </div>
+                                            <div class="bar-label">An. gambiae</div>
+                                        </div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-group">
+                                                <div class="bar-segment color-green" style="height:8%;"></div>
+                                                <div class="bar-segment color-orange" style="height:12%;"></div>
+                                                <div class="bar-segment color-red" style="height:65%;"></div>
+                                                <div class="bar-segment color-blue" style="height:15%;"></div>
+                                            </div>
+                                            <div class="bar-label">An. coluzzii</div>
+                                        </div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-group">
+                                                <div class="bar-segment color-green" style="height:25%;"></div>
+                                                <div class="bar-segment color-orange" style="height:12%;"></div>
+                                                <div class="bar-segment color-red" style="height:40%;"></div>
+                                                <div class="bar-segment color-blue" style="height:23%;"></div>
+                                            </div>
+                                            <div class="bar-label">An. arabiensis</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="legend-container">
+                                    <div class="legend-title">Genotype</div>
+                                    <div class="legend-item">
+                                        <div class="legend-box color-green"></div><span>Wild-type</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box color-orange"></div><span>Heterozygous</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box color-red"></div><span>Homozygous Mutant</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box color-blue"></div><span>Unclassified</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="x-axis-title">Mosquito Species</div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Natural Language Summary</div>
+                        <div class="summary-box">
+                            Analysis complete. The Vgsc-995F <em>kdr</em> mutation is highly prevalent (over 85% homozygous mutant) in <em>An. gambiae</em> and <em>An. coluzzii</em> populations in Burkina Faso collected after 2018. Resistance frequency remains significantly lower in <em>An. arabiensis</em> from the same region.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-view" id="result1">
+                    <div class="section">
+                        <div class="section-title">Generated Python Code</div>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(1)">Copy</button>
+                            <span class="comment"># Refine — filter to An. gambiae only</span><br>
+                            df_gambiae = df_samples[<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;df_samples[<span class="string">"taxon"</span>] == <span class="string">"gambiae"</span><br>
+                            ][[[<span class="string">"sample_id"</span>, <span class="string">"country"</span>, <span class="string">"year"</span>, <span class="string">"taxon"</span>, <span class="string">"admin1_name"</span>]]<br><br>
+                            <span class="keyword">print</span>(df_gambiae.<span class="function">head</span>(10))
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Data Output — An. gambiae Samples</div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sample ID</th>
+                                        <th>Country</th>
+                                        <th>Year</th>
+                                        <th>Taxon</th>
+                                        <th>Region</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>AG0001-C</td><td>Burkina Faso</td><td>2019</td><td><em>An. gambiae</em></td><td>Houet</td></tr>
+                                    <tr><td>AG0002-C</td><td>Burkina Faso</td><td>2019</td><td><em>An. gambiae</em></td><td>Houet</td></tr>
+                                    <tr><td>AG0008-C</td><td>Burkina Faso</td><td>2020</td><td><em>An. gambiae</em></td><td>Kadiogo</td></tr>
+                                    <tr><td>AG0015-C</td><td>Burkina Faso</td><td>2020</td><td><em>An. gambiae</em></td><td>Kadiogo</td></tr>
+                                    <tr><td>AG0023-C</td><td>Burkina Faso</td><td>2021</td><td><em>An. gambiae</em></td><td>Boulkiemdé</td></tr>
+                                    <tr><td>AG0031-C</td><td>Burkina Faso</td><td>2021</td><td><em>An. gambiae</em></td><td>Boulkiemdé</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer">Showing 6 of 312 An. gambiae samples · Burkina Faso post-2018</div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Natural Language Summary</div>
+                        <div class="summary-box">
+                            Filtered to <em>An. gambiae</em> only. 312 matching samples found in Burkina Faso collected after 2018, across Houet, Kadiogo, and Boulkiemdé provinces. Would you like to plot these on a map or compute allele frequencies for this subset?
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-view" id="result2">
+                    <div class="section">
+                        <div class="section-title">Generated Python Code</div>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(2)">Copy</button>
+                            <span class="comment"># Attempting to access restricted dataset...</span><br>
+                            df = ag3.<span class="function">sample_metadata</span>(<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;sample_sets=<span class="string">"restricted"</span>,<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;sample_query=<span class="string">"taxon == 'arabiensis'"</span><br>
+                            )<br>
+                            <span class="comment"># PermissionError: data governance check triggered</span>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Access Status</div>
+                        <div class="warning-box">
+                            <span class="warning-icon">⚠️</span>
+                            <div class="warning-content">
+                                <h3>Restricted Dataset — Access Required</h3>
+                                <p>The <em>Anopheles arabiensis</em> sample data you requested is part of a restricted dataset governed by the MalariaGEN Data Access Agreement. This data is not publicly available without prior approval.</p>
+                                <p style="margin-top:10px;">Your query has been saved. Once your access request is approved, you can re-run it directly.</p>
+                                <a class="warning-link" href="https://forms.gle/d1NV3aL3EoVQGSHYA" target="_blank">Request Data Access →</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Natural Language Summary</div>
+                        <div class="summary-box" style="background:linear-gradient(135deg,#fffbeb,#fff7ed);border-color:#f6e05e;">
+                            Access denied for restricted <em>An. arabiensis</em> dataset. The tool detected a data governance boundary and stopped execution before making any API calls. Please complete the MalariaGEN data access form to proceed.
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
+
+        <footer class="app-footer">
+            Data sourced from MalariaGEN Vector Observatory (Ag3.14) — Use of this data is subject to the Terms of Use. Please cite [reference] in any publication. → <a href="https://www.malariagen.net/data/our-approach-sharing-data/" target="_blank">Ag3.14 Terms of Use</a>
+        </footer>
     </div>
 
     <script>
-        // Show modal on first visit
-        window.onload = function () {
-            if (!localStorage.removeItem("touAccepted")) {
-                document.body.classList.add("blurred");
-            } else {
-                document.getElementById("touModal").style.display = "none";
-            }
-        };
+        // --- Modal Acceptance Logic ---
+        document.getElementById('acceptBtn').addEventListener('click', function() {
+            document.getElementById('modalOverlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('modalOverlay').style.display = 'none';
+                document.getElementById('app-content').classList.remove('blurred');
+            }, 300); // Wait for fade out animation
+        });
 
-        function acceptTOU() {
-            localStorage.setItem("touAccepted", "true");
-            document.body.classList.remove("blurred");
-            document.getElementById("touModal").style.display = "none";
+        // --- Original App Logic ---
+        const queries = [
+            "Show me the distribution of kdr mutations (Vgsc-995F) across different mosquito species in Burkina Faso collected after 2018.",
+            "Now filter to Anopheles gambiae only and show as a table.",
+            "Show me restricted Anopheles arabiensis sample data."
+        ];
+
+        const codeBlocks = [
+            `import malariagen_data\nag3 = malariagen_data.Ag3()\n\ndf_samples = ag3.sample_metadata(\n    sample_sets="3.0",\n    sample_query="country == 'Burkina Faso' and year > 2018"\n)\n\nsnps = ag3.snp_calls(\n    region="2L:2,422,652",\n    samples=df_samples["sample_id"].values\n)`,
+            `# Refine — filter to An. gambiae only\ndf_gambiae = df_samples[\n    df_samples["taxon"] == "gambiae"\n][["sample_id","country","year","taxon","admin1_name"]]\n\nprint(df_gambiae.head(10))`,
+            `# Attempting to access restricted dataset...\ndf = ag3.sample_metadata(\n    sample_sets="restricted",\n    sample_query="taxon == 'arabiensis'"\n)\n# PermissionError: data governance check triggered`
+        ];
+
+        let currentResult = 0;
+
+        function selectChip(index) {
+            document.getElementById('queryBox').value = queries[index];
+            document.querySelectorAll('.chip').forEach((c, i) => c.classList.toggle('active', i === index));
+            currentResult = index;
+            runQuery();
+        }
+
+        function runQuery() {
+            const btn = document.getElementById('runBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.getElementById('btnText');
+            const loader = document.getElementById('loader');
+
+            document.querySelectorAll('.result-view').forEach(r => r.classList.remove('active'));
+            loader.style.display = 'flex';
+            spinner.style.display = 'block';
+            btnText.textContent = 'Running...';
+            btn.disabled = true;
+
+            const typed = document.getElementById('queryBox').value.toLowerCase();
+            if (typed.includes('restrict')) currentResult = 2;
+            else if (typed.includes('gambiae') || typed.includes('filter') || typed.includes('table')) currentResult = 1;
+            else currentResult = 0;
+
+            document.querySelectorAll('.chip').forEach((c, i) => c.classList.toggle('active', i === currentResult));
+
+            setTimeout(() => {
+                loader.style.display = 'none';
+                document.getElementById('result' + currentResult).classList.add('active');
+                spinner.style.display = 'none';
+                btnText.textContent = '▶ Run Query';
+                btn.disabled = false;
+            }, 1400);
+        }
+
+        function copyCode(index) {
+            navigator.clipboard.writeText(codeBlocks[index]).then(() => {
+                const btns = document.querySelectorAll('.copy-btn');
+                if (btns[index]) { btns[index].textContent = 'Copied!'; setTimeout(() => btns[index].textContent = 'Copy', 1500); }
+            });
         }
     </script>
-
 </body>
+
 </html>
