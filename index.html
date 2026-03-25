@@ -80,7 +80,7 @@
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.55);
-            display: flex;
+            display: none; /* start hidden */
             align-items: center;
             justify-content: center;
             z-index: 9999;
@@ -176,7 +176,7 @@
     <script>
         // Show modal on first visit
         window.onload = function () {
-            if (!localStorage.getItem("touAccepted")) {
+            if (!localStorage.removeItem("touAccepted")) {
                 document.body.classList.add("blurred");
             } else {
                 document.getElementById("touModal").style.display = "none";
